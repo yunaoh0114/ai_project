@@ -19,9 +19,19 @@ st.title("🌡️ 날짜별 기온분석")
 # ---------------------------
 @st.cache_data
 def load_data():
+
     df = pd.read_csv("seoul.csv", encoding="euc-kr")
 
-    df['날짜'] = pd.to_datetime(df['날짜'])
+    # 날짜 변환 오류 방지
+    df['날짜'] = pd.to_datetime(
+        df['날짜'],
+        errors='coerce'
+    )
+
+    # 날짜 없는 행 제거
+    df = df.dropna(subset=['날짜'])
+
+    # 연/월/일 생성
     df['연도'] = df['날짜'].dt.year
     df['월'] = df['날짜'].dt.month
     df['일'] = df['날짜'].dt.day
@@ -31,7 +41,7 @@ def load_data():
 df = load_data()
 
 # ---------------------------
-# 월/일 선택
+# 월 / 일 선택
 # ---------------------------
 col1, col2 = st.columns(2)
 
@@ -42,20 +52,25 @@ with col1:
     )
 
 with col2:
+
+    available_days = sorted(
+        df[df['월'] == month]['일'].unique()
+    )
+
     day = st.selectbox(
         "일 선택",
-        sorted(df[df['월'] == month]['일'].unique())
+        available_days
     )
 
 # ---------------------------
-# 선택 날짜 데이터 필터링
+# 데이터 필터링
 # ---------------------------
 filtered = df[
     (df['월'] == month) &
     (df['일'] == day)
 ]
 
-filtered = filtered.sort_values("연도")
+filtered = filtered.sort_values('연도')
 
 # ---------------------------
 # 그래프 생성
@@ -99,24 +114,27 @@ fig.update_layout(
     title="날짜별 기온분석",
     xaxis_title="연도",
     yaxis_title="온도(℃)",
-    hovermode='x unified',
-    legend=dict(
-        title="범례"
-    ),
     template="plotly_white",
+    hovermode='x unified',
+    legend_title='범례',
     height=650
 )
 
 # ---------------------------
 # 그래프 출력
 # ---------------------------
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(
+    fig,
+    use_container_width=True
+)
 
 # ---------------------------
-# 데이터 보기
+# 데이터 테이블
 # ---------------------------
-with st.expander("📄 선택한 날짜 데이터 보기"):
+with st.expander("📄 데이터 보기"):
     st.dataframe(
-        filtered[['연도', '최고기온(℃)', '최저기온(℃)']],
+        filtered[
+            ['연도', '최고기온(℃)', '최저기온(℃)']
+        ],
         use_container_width=True
     )
