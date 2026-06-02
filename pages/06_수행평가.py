@@ -1,20 +1,30 @@
 import streamlit as st
+import pandas as pd
+import pydeck as pdk
 import random
 
-# ------------------------
+# --------------------------------------------------
 # 페이지 설정
-# ------------------------
+# --------------------------------------------------
+
 st.set_page_config(
     page_title="🍜 오늘 뭐 먹지?",
     page_icon="🍔",
     layout="wide"
 )
 
-# ------------------------
-# 데이터
-# ------------------------
+# --------------------------------------------------
+# 제목
+# --------------------------------------------------
 
-food_list = [
+st.title("🍜 오늘 뭐 먹지?")
+st.caption("🚇 지하철역 기준 음식 & 맛집 추천 서비스")
+
+# --------------------------------------------------
+# 음식 50개
+# --------------------------------------------------
+
+foods = [
     "삼겹살","목살","갈비","불고기","제육볶음",
     "김치찌개","된장찌개","순두부찌개","부대찌개","감자탕",
     "설렁탕","갈비탕","육개장","국밥","해장국",
@@ -27,12 +37,16 @@ food_list = [
     "보쌈","곱창","막창","떡볶이","순대"
 ]
 
-restaurant_data = {
+# --------------------------------------------------
+# 맛집 데이터
+# --------------------------------------------------
+
+restaurants = {
     "한식": [
         ("청춘국밥", "든든한 국밥 맛집"),
-        ("서울밥상", "집밥 느낌의 한식당"),
+        ("서울밥상", "집밥 느낌 가득"),
         ("삼겹천국", "고기 좋아하면 필수"),
-        ("김치명가", "김치찌개 전문점"),
+        ("김치명가", "김치찌개 전문"),
         ("할머니식당", "정겨운 백반집")
     ],
 
@@ -46,9 +60,9 @@ restaurant_data = {
 
     "일식": [
         ("스시하루", "신선한 초밥"),
-        ("라멘공방", "진한 돈코츠 라멘"),
+        ("라멘공방", "돈코츠 라멘 전문"),
         ("사쿠라", "일본 가정식"),
-        ("우동팩토리", "수타 우동 전문"),
+        ("우동팩토리", "수타 우동"),
         ("돈카츠클럽", "바삭한 돈까스")
     ],
 
@@ -56,10 +70,14 @@ restaurant_data = {
         ("파스타랩", "크림파스타 인기"),
         ("버거클럽", "수제버거 맛집"),
         ("브런치팩토리", "감성 브런치"),
-        ("스테이크하우스", "고급 스테이크"),
+        ("스테이크하우스", "프리미엄 스테이크"),
         ("피자스퀘어", "화덕피자 전문")
     ]
 }
+
+# --------------------------------------------------
+# 예시 역
+# --------------------------------------------------
 
 popular_stations = [
     "강남역",
@@ -74,16 +92,9 @@ popular_stations = [
     "을지로입구역"
 ]
 
-# ------------------------
-# 제목
-# ------------------------
-
-st.title("🍜 오늘 뭐 먹지?")
-st.caption("🚇 지하철역 기준 맛집 추천 서비스")
-
-# ------------------------
+# --------------------------------------------------
 # 지하철역 입력
-# ------------------------
+# --------------------------------------------------
 
 station = st.text_input(
     "🚇 현재 가장 가까운 지하철역을 입력해줘!",
@@ -93,34 +104,47 @@ station = st.text_input(
 with st.expander("📍 예시 지하철역 보기"):
     st.write(", ".join(popular_stations))
 
-# ------------------------
-# 음식 추천
-# ------------------------
+# --------------------------------------------------
+# 실행
+# --------------------------------------------------
 
 if station:
 
-    st.success(f"🎉 {station} 주변에서 먹기 좋은 음식 추천!")
+    st.success(f"🎉 {station} 주변 음식 추천!")
 
     cols = st.columns(5)
 
-    for idx, food in enumerate(food_list):
+    for idx, food in enumerate(foods):
         cols[idx % 5].write(f"🍽️ {food}")
 
     st.divider()
 
-    st.info("🤔 아직도 못 고르겠다면 음식 종류를 골라보자!")
+    st.info("🤔 아직 못 고르겠다면 종류를 선택해보자!")
 
     category = st.radio(
-        "🍴 어떤 종류가 끌려?",
+        "🍴 어떤 종류가 땡겨?",
         ["한식", "중식", "일식", "양식"],
         horizontal=True
     )
 
     st.divider()
 
-    st.subheader(f"⭐ {station} 주변 추천 {category} 맛집 TOP 5")
+    st.subheader(f"⭐ {station} 주변 추천 {category} 맛집 TOP5")
 
-    for name, desc in restaurant_data[category]:
+    map_data = []
+
+    # 현재 위치(역)
+    station_lat = 37.4979
+    station_lon = 127.0276
+
+    map_data.append({
+        "name": f"{station} (현재 위치)",
+        "lat": station_lat,
+        "lon": station_lon,
+        "color": [255, 0, 0]
+    })
+
+    for rank, (name, desc) in enumerate(restaurants[category], start=1):
 
         distance = round(random.uniform(0.3, 2.5), 1)
 
@@ -128,34 +152,63 @@ if station:
 
         transit_time = max(2, int(distance * 4))
 
-        with st.container(border=True):
+        rating = round(random.uniform(4.1, 4.9), 1)
 
-            st.markdown(f"### 🍜 {name}")
+        st.markdown("---")
 
-            st.write(f"💬 {desc}")
+        st.markdown(f"### 🏆 {rank}위 | {name}")
 
-            st.write(f"📍 기준역 : {station}")
+        st.write(f"💬 {desc}")
+        st.write(f"📏 예상 거리 : {distance} km")
+        st.write(f"🚶 도보 약 {walk_time}분")
+        st.write(f"🚌 대중교통 약 {transit_time}분")
+        st.write(f"⭐ 만족도 : {rating}/5.0")
 
-            st.write(f"📏 예상 거리 : {distance} km")
+        lat_offset = random.uniform(-0.01, 0.01)
+        lon_offset = random.uniform(-0.01, 0.01)
 
-            st.write(f"🚶 도보 약 {walk_time}분")
+        map_data.append({
+            "name": f"{rank}위 {name}",
+            "lat": station_lat + lat_offset,
+            "lon": station_lon + lon_offset,
+            "color": [0, 0, 255]
+        })
 
-            st.write(f"🚌 대중교통 약 {transit_time}분")
+    st.divider()
 
-            rating = round(random.uniform(4.1, 4.9), 1)
+    st.subheader("🗺️ 맛집 위치 지도")
 
-            st.write(f"⭐ 예상 만족도 : {rating}/5.0")
+    df = pd.DataFrame(map_data)
 
-            if rating >= 4.7:
-                st.success("🔥 요즘 인기 많은 곳!")
-            elif rating >= 4.4:
-                st.info("😋 만족도 높은 맛집!")
-            else:
-                st.warning("🙂 무난하게 즐기기 좋은 곳!")
+    layer = pdk.Layer(
+        "ScatterplotLayer",
+        data=df,
+        get_position=["lon", "lat"],
+        get_fill_color="color",
+        get_radius=120,
+        pickable=True
+    )
 
-# ------------------------
+    view_state = pdk.ViewState(
+        latitude=station_lat,
+        longitude=station_lon,
+        zoom=14,
+        pitch=0
+    )
+
+    deck = pdk.Deck(
+        layers=[layer],
+        initial_view_state=view_state,
+        tooltip={
+            "text": "{name}"
+        }
+    )
+
+    st.pydeck_chart(deck)
+
+# --------------------------------------------------
 # 하단
-# ------------------------
+# --------------------------------------------------
 
 st.divider()
 
@@ -164,9 +217,10 @@ st.markdown("""
 
 1. 🚇 현재 가까운 지하철역 입력
 2. 🍜 음식 추천 확인
-3. 🤔 못 고르겠으면 음식 종류 선택
-4. ⭐ 맛집 추천 받기
-5. 😋 맛있게 먹기
+3. 🤔 음식 종류 선택
+4. ⭐ 맛집 TOP5 확인
+5. 🗺️ 지도 확인
+6. 😋 맛있게 먹기
 
-오늘도 맛있는 하루 보내자! 🍕🍔🍜🍣
+오늘도 행복한 식사 되세요! 🍔🍕🍜🍣
 """)
