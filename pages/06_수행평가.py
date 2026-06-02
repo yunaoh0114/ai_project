@@ -43,7 +43,8 @@ def load_data():
         st.write(f.name)
 
     return pd.DataFrame()
-        except:
+   
+     except:
             pass
 
     return pd.read_csv(
