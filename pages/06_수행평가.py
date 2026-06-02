@@ -24,18 +24,25 @@ st.caption("🚇 지하철역 기준 서울 맛집 추천 서비스")
 # ------------------------------------------------
 # CSV 불러오기
 # ------------------------------------------------
+from pathlib import Path
+import pandas as pd
+import streamlit as st
 
 @st.cache_data
 def load_data():
 
-    encodings = ["cp949", "utf-8", "utf-8-sig"]
+    current_dir = Path(__file__).parent
 
-    for enc in encodings:
-        try:
-            return pd.read_csv(
-                "서울시 관광 음식.csv",
-                encoding=enc
-            )
+    st.write("현재 폴더:", current_dir)
+
+    files = list(current_dir.iterdir())
+
+    st.write("현재 폴더 파일 목록")
+
+    for f in files:
+        st.write(f.name)
+
+    return pd.DataFrame()
         except:
             pass
 
