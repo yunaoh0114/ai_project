@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
-import random
+from pathlib import Path
 
 # ------------------------------------------------
 # 페이지 설정
@@ -19,37 +19,30 @@ st.set_page_config(
 # ------------------------------------------------
 
 st.title("🍜 오늘 뭐 먹지?")
-st.caption("🚇 지하철역 기준 서울 맛집 추천 서비스")
+st.caption("🚇 지하철역 기준 맛집 추천 서비스")
 
 # ------------------------------------------------
-# CSV 불러오기
+# CSV 확인
 # ------------------------------------------------
-from pathlib import Path
 
-@st.cache_data
-def load_data():
+st.subheader("📂 CSV 파일 확인")
 
-    current_dir = Path(__file__).parent
+current_dir = Path(__file__).parent
+root_dir = current_dir.parent
 
-    st.write("현재 폴더:", current_dir)
+st.write("현재 폴더:", current_dir)
 
-    files = list(current_dir.iterdir())
+st.write("현재 폴더 파일")
 
-    st.write("현재 폴더 파일 목록")
+for f in current_dir.iterdir():
+    st.write("📄", f.name)
 
-    for f in files:
-        st.write(f.name)
+st.write("---")
 
-    return pd.DataFrame()
-     except:
-            pass
+st.write("프로젝트 루트 파일")
 
-    return pd.read_csv(
-        "서울시 관광 음식.csv",
-        encoding_errors="replace"
-    )
-
-df = load_data()
+for f in root_dir.iterdir():
+    st.write("📄", f.name)
 
 # ------------------------------------------------
 # 음식 추천
@@ -69,24 +62,16 @@ foods = [
     "해장국","쌀국수"
 ]
 
-# ------------------------------------------------
-# 역 입력
-# ------------------------------------------------
-
 station = st.text_input(
-    "🚇 현재 가장 가까운 지하철역을 입력하세요",
+    "🚇 가까운 지하철역을 입력하세요",
     placeholder="예: 강남역"
 )
 
 if station:
 
-    st.success(f"🎉 {station} 주변 맛집을 찾아봤어요!")
+    st.success(f"🎉 {station} 주변 추천!")
 
-    # --------------------------------------------
-    # 음식 추천
-    # --------------------------------------------
-
-    st.subheader("🍽️ 오늘의 음식 추천 50가지")
+    st.subheader("🍽️ 추천 음식")
 
     cols = st.columns(5)
 
@@ -95,167 +80,31 @@ if station:
 
     st.divider()
 
-    # --------------------------------------------
-    # 맛집 검색
-    # --------------------------------------------
+    st.subheader("🗺️ 예시 지도")
 
-    result = df[
-        df["교통정보"]
-        .astype(str)
-        .str.contains(
-            station,
-            case=False,
-            na=False
-        )
-    ]
+    station_lat = 37.4979
+    station_lon = 127.0276
 
-    if len(result) == 0:
+    m = folium.Map(
+        location=[station_lat, station_lon],
+        zoom_start=15
+    )
 
-        st.warning(
-            "😢 해당 역 주변 맛집 정보를 찾지 못했어요."
-        )
+    folium.Marker(
+        [station_lat, station_lon],
+        popup=station,
+        tooltip="현재 위치",
+        icon=folium.Icon(color="red")
+    ).add_to(m)
 
-    else:
-
-        top5 = result.head(5)
-
-        st.subheader(
-            f"🏆 {station} 주변 추천 맛집 TOP5"
-        )
-
-        map_data = []
-
-        for rank, (_, row) in enumerate(
-            top5.iterrows(),
-            start=1
-        ):
-
-            st.markdown("---")
-
-            st.markdown(
-                f"## 🏆 {rank}위 {row['상호명']}"
-            )
-
-            st.write(
-                f"🍽️ 대표메뉴 : {row['대표메뉴']}"
-            )
-
-            st.write(
-                f"📍 주소 : {row['신주소']}"
-            )
-
-            st.write(
-                f"☎️ 전화번호 : {row['전화번호']}"
-            )
-
-            st.write(
-                f"🚇 교통정보 : {row['교통정보']}"
-            )
-
-            if "운영시간" in row:
-                st.write(
-                    f"🕒 운영시간 : {row['운영시간']}"
-                )
-
-            map_data.append({
-                "rank": rank,
-                "name": row["상호명"]
-            })
-
-        # ----------------------------------------
-        # 지도
-        # ----------------------------------------
-
-        st.divider()
-
-        st.subheader("🗺️ 맛집 위치 지도")
-
-        station_lat = 37.4979
-        station_lon = 127.0276
-
-        m = folium.Map(
-            location=[
-                station_lat,
-                station_lon
-            ],
-            zoom_start=15
-        )
-
-        # 현재 위치
-        folium.Marker(
-            [
-                station_lat,
-                station_lon
-            ],
-            popup=f"🚇 {station}",
-            tooltip="현재 위치",
-            icon=folium.Icon(
-                color="red"
-            )
-        ).add_to(m)
-
-        # 맛집 마커
-        for item in map_data:
-
-            lat_offset = random.uniform(
-                -0.01,
-                0.01
-            )
-
-            lon_offset = random.uniform(
-                -0.01,
-                0.01
-            )
-
-            folium.Marker(
-                [
-                    station_lat + lat_offset,
-                    station_lon + lon_offset
-                ],
-                popup=item["name"],
-                tooltip=f"{item['rank']}위",
-                icon=folium.DivIcon(
-                    html=f"""
-                    <div style="
-                    background:#2563eb;
-                    color:white;
-                    width:30px;
-                    height:30px;
-                    border-radius:50%;
-                    text-align:center;
-                    line-height:30px;
-                    font-weight:bold;
-                    border:2px solid white;">
-                    {item['rank']}
-                    </div>
-                    """
-                )
-            ).add_to(m)
-
-        st_folium(
-            m,
-            width=None,
-            height=600
-        )
-
-# ------------------------------------------------
-# 하단
-# ------------------------------------------------
+    st_folium(
+        m,
+        height=500,
+        width=None
+    )
 
 st.divider()
 
-st.markdown("""
-### 🎯 사용 방법
-
-1️⃣ 지하철역 입력
-
-2️⃣ 음식 추천 확인
-
-3️⃣ 실제 맛집 TOP5 확인
-
-4️⃣ 지도 확인
-
-5️⃣ 친구랑 맛있게 먹기 😋
-
-즐거운 식사 되세요! 🍜🍕🍔
-""")
+st.info(
+    "CSV 파일 이름 확인 후 알려주세요."
+)
