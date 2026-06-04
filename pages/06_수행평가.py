@@ -1,3 +1,4 @@
+csv_path = root_dir / "seoul_food.csv"
 import streamlit as st
 import pandas as pd
 import folium
