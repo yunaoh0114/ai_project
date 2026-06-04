@@ -1,4 +1,3 @@
-csv_path = root_dir / "seoul_food.csv"
 import streamlit as st
 import pandas as pd
 import folium
@@ -31,13 +30,11 @@ def load_data():
 
     root_dir = Path(__file__).resolve().parent.parent
 
-    csv_files = list(root_dir.glob("*.csv"))
+  csv_path = root_dir / "seoul_food.csv"
 
-    if len(csv_files) == 0:
-        st.error("❌ 프로젝트 폴더에 CSV 파일이 없습니다.")
-        st.stop()
-
-    csv_path = csv_files[0]
+if not csv_path.exists():
+    st.error("❌ seoul_food.csv 파일을 찾을 수 없습니다.")
+    st.stop()
 
     encodings = [
         "cp949",
