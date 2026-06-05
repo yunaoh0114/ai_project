@@ -1,7 +1,7 @@
 import streamlit as st
+import pandas as pd
+import pydeck as pdk
 import random
-import folium
-from streamlit_folium import st_folium
 
 # --------------------------------------------------
 # 페이지 설정
@@ -18,10 +18,10 @@ st.set_page_config(
 # --------------------------------------------------
 
 st.title("🍜 오늘 뭐 먹지?")
-st.caption("🚇 지하철역 기준 맛집 추천 서비스")
+st.caption("🚇 지하철역 기준 음식 & 맛집 추천 서비스")
 
 # --------------------------------------------------
-# 음식 데이터
+# 음식 50개
 # --------------------------------------------------
 
 foods = [
@@ -93,7 +93,7 @@ popular_stations = [
 ]
 
 # --------------------------------------------------
-# 역 입력
+# 지하철역 입력
 # --------------------------------------------------
 
 station = st.text_input(
@@ -112,8 +112,6 @@ if station:
 
     st.success(f"🎉 {station} 주변 음식 추천!")
 
-    st.subheader("🍜 추천 음식 50가지")
-
     cols = st.columns(5)
 
     for idx, food in enumerate(foods):
@@ -121,10 +119,10 @@ if station:
 
     st.divider()
 
-    st.info("🤔 아직도 못 고르겠다면 음식 종류를 골라보자!")
+    st.info("🤔 아직 못 고르겠다면 종류를 선택해보자!")
 
     category = st.radio(
-        "🍴 어떤 음식이 땡겨?",
+        "🍴 어떤 종류가 땡겨?",
         ["한식", "중식", "일식", "양식"],
         horizontal=True
     )
@@ -133,11 +131,18 @@ if station:
 
     st.subheader(f"⭐ {station} 주변 추천 {category} 맛집 TOP5")
 
-    # 기준 위치(예시)
+    map_data = []
+
+    # 현재 위치(역)
     station_lat = 37.4979
     station_lon = 127.0276
 
-    map_data = []
+    map_data.append({
+        "name": f"{station} (현재 위치)",
+        "lat": station_lat,
+        "lon": station_lon,
+        "color": [255, 0, 0]
+    })
 
     for rank, (name, desc) in enumerate(restaurants[category], start=1):
 
@@ -163,68 +168,43 @@ if station:
         lon_offset = random.uniform(-0.01, 0.01)
 
         map_data.append({
-            "name": name,
-            "rank": rank,
+            "name": f"{rank}위 {name}",
             "lat": station_lat + lat_offset,
-            "lon": station_lon + lon_offset
+            "lon": station_lon + lon_offset,
+            "color": [0, 0, 255]
         })
 
     st.divider()
 
     st.subheader("🗺️ 맛집 위치 지도")
 
-    # --------------------------
-    # Folium 지도
-    # --------------------------
+    df = pd.DataFrame(map_data)
 
-    m = folium.Map(
-        location=[station_lat, station_lon],
-        zoom_start=15
+    layer = pdk.Layer(
+        "ScatterplotLayer",
+        data=df,
+        get_position=["lon", "lat"],
+        get_fill_color="color",
+        get_radius=120,
+        pickable=True
     )
 
-    # 현재 위치 (빨간색)
-    folium.Marker(
-        [station_lat, station_lon],
-        popup=f"🚇 {station}",
-        tooltip="현재 위치",
-        icon=folium.Icon(
-            color="red",
-            icon="info-sign"
-        )
-    ).add_to(m)
-
-    # 맛집 마커
-    for item in map_data:
-
-        folium.Marker(
-            [item["lat"], item["lon"]],
-            popup=f"{item['rank']}위 - {item['name']}",
-            tooltip=f"🏆 {item['rank']}위",
-            icon=folium.DivIcon(
-                html=f"""
-                <div style="
-                    background:#2563eb;
-                    color:white;
-                    width:30px;
-                    height:30px;
-                    border-radius:50%;
-                    text-align:center;
-                    line-height:30px;
-                    font-weight:bold;
-                    border:2px solid white;
-                    box-shadow:0 0 5px rgba(0,0,0,0.4);
-                ">
-                    {item['rank']}
-                </div>
-                """
-            )
-        ).add_to(m)
-
-    st_folium(
-        m,
-        width=None,
-        height=600
+    view_state = pdk.ViewState(
+        latitude=station_lat,
+        longitude=station_lon,
+        zoom=14,
+        pitch=0
     )
+
+    deck = pdk.Deck(
+        layers=[layer],
+        initial_view_state=view_state,
+        tooltip={
+            "text": "{name}"
+        }
+    )
+
+    st.pydeck_chart(deck)
 
 # --------------------------------------------------
 # 하단
@@ -235,12 +215,12 @@ st.divider()
 st.markdown("""
 ### 🎯 사용 방법
 
-1. 🚇 가까운 지하철역 입력
+1. 🚇 현재 가까운 지하철역 입력
 2. 🍜 음식 추천 확인
-3. 🍴 한식 / 중식 / 일식 / 양식 선택
+3. 🤔 음식 종류 선택
 4. ⭐ 맛집 TOP5 확인
 5. 🗺️ 지도 확인
-6. 😋 맛있게 먹기!
+6. 😋 맛있게 먹기
 
-오늘도 맛있는 하루 보내자! 🍔🍕🍜🍣
+오늘도 행복한 식사 되세요! 🍔🍕🍜🍣
 """)
