@@ -1,6 +1,12 @@
 import streamlit as st
 import pandas as pd
+import folium
+from streamlit_folium import st_folium
 from pathlib import Path
+
+# ------------------------------------------------
+# 페이지 설정
+# ------------------------------------------------
 
 st.set_page_config(
     page_title="🍜 오늘 뭐 먹지?",
@@ -8,45 +14,97 @@ st.set_page_config(
     layout="wide"
 )
 
+# ------------------------------------------------
+# 제목
+# ------------------------------------------------
+
 st.title("🍜 오늘 뭐 먹지?")
-st.caption("🚇 지하철역 기준 맛집 추천")
+st.caption("🚇 지하철역 기준 맛집 추천 서비스")
 
-@st.cache_data
-def load_data():
+# ------------------------------------------------
+# CSV 확인
+# ------------------------------------------------
 
-    root_dir = Path(__file__).resolve().parent.parent
+st.subheader("📂 CSV 파일 확인")
 
-    st.write("현재 폴더:", root_dir)
+current_dir = Path(__file__).parent
+root_dir = current_dir.parent
 
-    st.write("파일 목록")
+st.write("현재 폴더:", current_dir)
 
-    for f in root_dir.iterdir():
-        st.write(f.name)
+st.write("현재 폴더 파일")
 
-    csv_path = root_dir / "seoul_food.csv"
+for f in current_dir.iterdir():
+    st.write("📄", f.name)
 
-    st.write("찾는 파일:", csv_path)
+st.write("---")
 
-    if not csv_path.exists():
-        st.error("❌ seoul_food.csv 없음")
-        st.stop()
+st.write("프로젝트 루트 파일")
 
-    try:
-        df = pd.read_csv(csv_path)
-        return df
+for f in root_dir.iterdir():
+    st.write("📄", f.name)
 
-    except Exception as e:
-        st.error(str(e))
-        st.stop()
+# ------------------------------------------------
+# 음식 추천
+# ------------------------------------------------
 
-df = load_data()
+foods = [
+    "삼겹살","갈비","불고기","김치찌개","된장찌개",
+    "순두부찌개","감자탕","냉면","비빔밥","국밥",
+    "족발","보쌈","곱창","닭갈비","치킨",
+    "파스타","스테이크","햄버거","피자","초밥",
+    "라멘","우동","돈까스","짜장면","짬뽕",
+    "탕수육","마라탕","훠궈","쌀국수","샤브샤브",
+    "카레","오므라이스","김밥","떡볶이","순대",
+    "설렁탕","갈비탕","육개장","아귀찜","낙곱새",
+    "쭈꾸미볶음","오징어볶음","양꼬치","브런치",
+    "샌드위치","닭한마리","한우구이","막창",
+    "해장국","쌀국수"
+]
 
-st.success("CSV 로딩 성공!")
-
-st.write("컬럼 목록")
-st.write(df.columns.tolist())
-
-station = st.text_input("🚇 역 이름 입력")
+station = st.text_input(
+    "🚇 가까운 지하철역을 입력하세요",
+    placeholder="예: 강남역"
+)
 
 if station:
-    st.write(f"입력한 역: {station}")
+
+    st.success(f"🎉 {station} 주변 추천!")
+
+    st.subheader("🍽️ 추천 음식")
+
+    cols = st.columns(5)
+
+    for idx, food in enumerate(foods):
+        cols[idx % 5].write(f"🍜 {food}")
+
+    st.divider()
+
+    st.subheader("🗺️ 예시 지도")
+
+    station_lat = 37.4979
+    station_lon = 127.0276
+
+    m = folium.Map(
+        location=[station_lat, station_lon],
+        zoom_start=15
+    )
+
+    folium.Marker(
+        [station_lat, station_lon],
+        popup=station,
+        tooltip="현재 위치",
+        icon=folium.Icon(color="red")
+    ).add_to(m)
+
+    st_folium(
+        m,
+        height=500,
+        width=None
+    )
+
+st.divider()
+
+st.info(
+    "CSV 파일 이름 확인 후 알려주세요."
+)
